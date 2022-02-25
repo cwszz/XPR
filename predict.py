@@ -9,13 +9,8 @@ from torch.utils.data import Dataset, DataLoader, DistributedSampler
 from torch.cuda.amp import autocast, GradScaler
 from tqdm import tqdm
 import math
-import random
-import os
-import time
 from sklearn.model_selection import *
-from transformers import AdamW, get_cosine_schedule_with_warmup, BertConfig, \
-    RobertaConfig, get_linear_schedule_with_warmup, \
-    RobertaTokenizerFast, BertTokenizerFast, AutoTokenizer, AutoConfig, AutoModelForTokenClassification
+from transformers import AutoTokenizer, AutoConfig,
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 
@@ -40,48 +35,6 @@ else:
     device = torch.device('cuda:{}'.format(str(num)))
     torch.cuda.set_device(num)
 lossFunc = MoCoLoss().to(device)
-
-def train_model(model, train_loader):  # 训练一个epoch
-    scaler = GradScaler()
-    model.train()
-    losses = AverageMeter()
-    accs = AverageMeter()
-    clips = AverageMeter()
-
-    optimizer.zero_grad()
-
-    tk = tqdm(train_loader, total=len(train_loader), position=0, leave=True)
-
-    for step, batch in enumerate(tk):
-        batch_src = [tensors.to(device) for i,tensors in enumerate(batch) if i % 2 == 0]
-        batch_trg = [tensors.to(device) for i,tensors in enumerate(batch) if i % 2 == 1]
-        output0, output1 = model(batch_src,batch_trg)
-        loss1, acc1 = lossFunc(output0, output1)
-        output0, output1 = model(batch_trg,batch_src)
-        loss2, acc2 = lossFunc(output0, output1)
-        loss = loss1 + loss2
-        acc = (acc1 + acc2)/2
-        loss = loss / 2
-
-        input_ids = batch_src[0]
-        scaler.scale(loss).backward()
-        # loss.backward()
-
-        clip = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        clips.update(clip.item(), input_ids.size(0))
-
-        losses.update(loss.item(), input_ids.size(0))
-        accs.update(acc, input_ids.size(0))
-
-        tk.set_postfix(loss=losses.avg, acc=accs.avg, clips=clips.avg)
-
-        if ((step + 1) % args.gradient_accumulation_steps == 0) or ((step + 1) == len(train_loader)):  # 梯度累加
-            scaler.step(optimizer)
-            scaler.update()
-            optimizer.zero_grad()
-            scheduler.step()
-
-    return losses.avg, accs.avg
 
 
 def test_model(model, val_loader):  # 验证
@@ -168,7 +121,7 @@ if __name__ == '__main__':
     model = MoCo(config=config,K=quene_length,T=para_T,args=args).to(device)
     
         
-    model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank,find_unused_parameters=True)
+    # model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank,find_unused_parameters=True)
     if not unsup:
         model.load_state_dict(torch.load(args.output_model_path,map_location={'cuda:1':'cuda:0'}))  # 
     val_acc = test_model(model, test_loader)

@@ -22,7 +22,7 @@ import torch.distributed as dist
 
 from DictMatching.Loss import MoCoLoss
 from DictMatching.simclr import MoCo_simclr
-from DictMatching.moco import MoCo
+from DictMatching.moco import MoCo,BackBone_Model
 from utilsWord.args import getArgs
 from utilsWord.process import CustomDataset
 from utilsWord.tools import seed_everything, AverageMeter

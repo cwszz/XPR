@@ -3,6 +3,8 @@ import argparse
 lg = 'fr'
 sample_num = 4
 sn = '32'
+
+
 def getArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lg",
@@ -13,7 +15,6 @@ def getArgs():
                         default="zh",
                         type=str,
                         help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-
 
     parser.add_argument("--sn",
                         default='32',
@@ -131,7 +132,7 @@ def getArgs():
 
     parser.add_argument("--distributed",
                         type=bool,
-                        default=True,
+                        default=False,
                         help="whether distributed or not")
     parser.add_argument('--seed',
                         type=int,
@@ -161,30 +162,31 @@ def getArgs():
                         type=int,
                         help="Total batch size for eval.")
 
-
-    parser.add_argument('--z',type=str,default='./result/' + str(sample_num) + lg+ '-'+sn + '/best.pt')
-    parser.add_argument('--all_sentence_num',type=int,default=32)    
-    parser.add_argument('--dev_all_sentence_num',type=int,default=32,help="only for predict")           
-    parser.add_argument('--dev_sample_num',type=int,default=int(sn))
-    parser.add_argument('--cut_type',type=str,default='eos-eos')
-    parser.add_argument('--wo_span_eos',type=str,default='true')
-    parser.add_argument('--is_type',type=int,default=-1,help='token_type')
-    parser.add_argument('--train_sample_num',type=int,default=sample_num)
-    parser.add_argument('--sentence_max_len',type=int,default=80)
-    parser.add_argument('--quene_length',type=int,default=2048)
-    parser.add_argument('--momentum',type=float,default=0.999)
-    parser.add_argument('--T_para',type=float,default=0.04)
-    parser.add_argument('--layer_id',type=int,default=12)
-    parser.add_argument('--unsupervised',type=int,default=0)
-    parser.add_argument('--simclr',type=int,default=1)
-    parser.add_argument('--test_dev',type=int,default=0)
-    parser.add_argument('--sample_num',type=int,default=4)
-    parser.add_argument('--wolinear',type=int,default=0)
-    parser.add_argument('--dev_only_q_encoder',type=int,default=0)
-    parser.add_argument('--adapt_to_dataset',type=int,default=0)
-    parser.add_argument('--output_loss_dir',type=str,default='./result/' + str(sample_num) + '-' + lg+ '-'+sn)
-    parser.add_argument('--output_log_dir',type=str,default='result')
+    parser.add_argument('--z', type=str, default='./result/' +
+                        str(sample_num) + lg + '-'+sn + '/best.pt')
+    parser.add_argument('--all_sentence_num', type=int, default=32)
+    parser.add_argument('--dev_all_sentence_num', type=int,
+                        default=32, help="only for predict")
+    parser.add_argument('--dev_sample_num', type=int, default=int(sn))
+    parser.add_argument('--cut_type', type=str, default='eos-eos')
+    parser.add_argument('--wo_span_eos', type=str, default='true')
+    parser.add_argument('--is_type', type=int, default=-1, help='token_type')
+    parser.add_argument('--train_sample_num', type=int, default=sample_num)
+    parser.add_argument('--sentence_max_len', type=int, default=80)
+    parser.add_argument('--quene_length', type=int, default=2048)
+    parser.add_argument('--momentum', type=float, default=0.999)
+    parser.add_argument('--T_para', type=float, default=0.04)
+    parser.add_argument('--layer_id', type=int, default=12)
+    parser.add_argument('--unsupervised', type=int, default=0)
+    parser.add_argument('--simclr', type=int, default=1)
+    parser.add_argument('--test_dev', type=int, default=0)
+    parser.add_argument('--sample_num', type=int, default=4)
+    parser.add_argument('--wolinear', type=int, default=0)
+    parser.add_argument('--dev_only_q_encoder', type=int, default=0)
+    parser.add_argument('--adapt_to_dataset', type=int, default=0)
+    parser.add_argument('--output_loss_dir', type=str,
+                        default='./result/' + str(sample_num) + '-' + lg + '-'+sn)
+    parser.add_argument('--output_log_dir', type=str, default='result')
 
     args = parser.parse_args()
     return args
-

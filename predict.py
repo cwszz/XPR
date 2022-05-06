@@ -89,21 +89,15 @@ if __name__ == '__main__':
     en_word2context = load_word2context_from_tsv_hiki(args.src_context_path,args.dev_all_sentence_num)
     lg_word2context = load_word2context_from_tsv_hiki(args.trg_context_path,args.dev_all_sentence_num)
     unsup = args.unsupervised
+    best_acc = 0
     
     test_dataset = WordWithContextDatasetWW(test, en_word2context, lg_word2context,sampleNum=args.dev_sample_num,
         max_len=args.sentence_max_len,cut_type=args.cut_type)
     test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size, collate_fn=test_dataset.collate, shuffle=False,num_workers=16)
 
-    best_acc = 0
-
-    """
-    分层训练 自适应模型
-    模型训练准备 参数设定
-    """
     config = AutoConfig.from_pretrained(args.model_name_or_path)
     model = MoCo(config=config,K=quene_length,T=para_T,args=args).to(device)
     if not unsup:
-        model.load_state_dict(torch.load('./model/pytorch_model.bin',map_location={'cuda:7':'cuda:0'}))  #
-        # model.load_state_dict(torch.load(args.load_model_path + '/best.pt',map_location={'cuda:1':'cuda:0'}))  # 
-    val_acc = test_model(model, test_loader)
+        model.load_state_dict(torch.load(args.load_model_path + '/pytorch_model.bin',map_location={'cuda:7':'cuda:0'}))  #
+        val_acc = test_model(model, test_loader)
     print("src-lg: " + args.lg  +" trg-lg: " + args.test_lg + " acc:", val_acc)

@@ -4,18 +4,23 @@
 
 Download Our Dataset Here: [link](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing)
 
-Unzip our dataset and move dataset into data folder. (see directory structure of data in tree.txt)
+Unzip our dataset and move dataset into dataset folder. (see directory structure of data in tree.txt)
 
 ## Requirements
 
 
 Download XLMR checkpoint from Huggingface page: [link](https://huggingface.co/xlm-roberta-base).
 
+Download XPR checkpoint from Huggingface page:
+[link](not finished)
+
 
 ```bash
 pip install -r requirements.txt
+mkdir model
+mkdir log
 ```
-
+<!-- 
 ## Directory Structure
 
 ```
@@ -43,26 +48,31 @@ XPR
     └── tools.py
 
 ```
-
+ -->
 
 
 ## Run
 
-Train our method:
+<!-- Train our method:
 
 ```
 CUDA_VISIBLE_DEVICES=0,1 python3 -m torch.distributed.launch  --nproc_per_node=2 \
 --master_port 29501 trainMoCo.py --output_log_dir log_output --seed 42 \
 --T_para 0.06 --simclr 0 --quene_length 0  --all_sentence_num 32 --train_sample_num 4 \
 --dev_sample_num 32 --dev_only_q_encoder 1 --lg 'fr'
-```
+``` -->
 
 Test our method:
+- Download the mode file and move it into ./model/
+- Make sure the path in test.sh is the path of dataset
 
 ```
+bash test.sh
+```
+<!-- ```
 CUDA_VISIBLE_DEVICES=0 python3 -m torch.distributed.launch --nproc_per_node=1 --master_port 29501 predict.py  --lg 'fr' --sn '32' --test_lg 'fr' \
 --output_log_dir 'test_result' --simclr 0 --quene_length 0 --T_para 0.06 --seed 42 --test_dev 0 --unsupervised 0 --wolinear 0
-```
+``` -->
 
 
 

@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers import XLMRobertaModel,XLMRobertaConfig,XLMRobertaTokenizer
-from transformers.tokenization_utils import AddedToken
-from torch.cuda.amp import autocast,GradScaler
+from torch.cuda.amp import autocast
 from DictMatching.SimCLR import _get_simclr_projection_head
 
 class BackBone_Model(nn.Module):
@@ -22,7 +21,7 @@ class BackBone_Model(nn.Module):
         self.criterion = nn.CrossEntropyLoss()
         self.layer_id = layer_id
         
-    def convert(self, opt, mask, index, length):  # 就是把entity 提取出来成[1*H]的，同时把句子中的entity同样替换[1*H]
+    def convert(self, opt, mask, index, length):  # Conver Phrase to [1,H]
         '''obtain the opt and word position information (index, length),
         return tensor with shape [B, H]'''
         # opt: [B, S, H]; index: [B]; length: [B]; mask: [B, S]
@@ -55,8 +54,6 @@ class BackBone_Model(nn.Module):
         # word_embd: [B, H]
         # new_opt: [B, S, H]
         # new_mask: [B, S]
-        # lt
-        # return word_embd, new_opt, new_mask
         return word_embd
     
     def extra_first_cls(self,opt):
@@ -80,8 +77,8 @@ class BackBone_Model(nn.Module):
             all_layers_hidden = self.model(input_ids=input_ids, attention_mask=mask,token_type_ids=None,output_hidden_states=True)[2]
         return all_layers_hidden[self.layer_id]
         
-        # 先给一个id，mask 编码，然后 self.head去映射。w1_index 应该是该词的坐标，w1_length 应该是这个词的长度, 因为是 bpe好像就是每个词一个embedding。
-        # 词的长度还需要想一想，感觉可能有问题
+    '''Id -> Mask -> Enocode -> projection_head'''
+    '''w1_index: index of word1; w1_length: length of w1'''
     def forward(self, w_indices=None, w_mask=None, w_index=None, w_length=None,w_type=None,sample_num=None):
         if sample_num != 0:
             '''w*_indices/w*_mask: [B, S]; w*_index/w*_length: [B]'''
@@ -89,11 +86,9 @@ class BackBone_Model(nn.Module):
                 opt_w = self._encode(w_indices, w_mask,w_type)  # w/o linear_head
             else:
                 opt_w = self.linear_head(self._encode(w_indices, w_mask,w_type))    # [B, S1, H]
-            # w1_embd = self.extra_first_cls(opt_w)
-            # w1_embd = self.extra_cls(opt_w, w_mask, w_index, w_length)
-            w1_embd = self.convert(opt_w, w_mask, w_index, w_length)   # [B, H] 平均提取
+            w1_embd = self.convert(opt_w, w_mask, w_index, w_length)   # [B, H] Mean
             w1_embd = torch.mean(w1_embd.reshape(-1,sample_num,w1_embd.size(-1)),dim=1)
-        else: # 此时进来的是word
+        else: # only word
             if self.wo_linear_head:
                 w1_embd = torch.mean(self._encode(w_indices,w_mask,w_type),dim=1)
                 # w1_embd = self._encode(w_indices,w_mask,w_type)[:,0,:] # w/o linear_head

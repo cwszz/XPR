@@ -2,8 +2,6 @@ import torch.nn as nn
 import torch
 from transformers import XLMRobertaModel
 
-from DictMatching.model import CrossLingualRobertaForSequenceClassification
-
 
 def _get_simclr_projection_head(num_ftrs: int, out_dim: int):
     """Returns a 2-layer projection head.

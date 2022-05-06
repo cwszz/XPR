@@ -24,7 +24,6 @@ from DictMatching.Loss import MoCoLoss
 from DictMatching.simclr import MoCo_simclr
 from DictMatching.moco import MoCo,BackBone_Model
 from utilsWord.args import getArgs
-from utilsWord.process import CustomDataset
 from utilsWord.tools import seed_everything, AverageMeter
 from utilsWord.sentence_process import load_words_mapping,WordWithContextDatasetWW,load_word2context_from_tsv_hiki
 
@@ -56,15 +55,8 @@ def train_model(model, train_loader):  # 训练一个epoch
     for step, batch in enumerate(tk):
         batch_src = [tensors.to(device) for i,tensors in enumerate(batch) if i % 2 == 0]
         batch_trg = [tensors.to(device) for i,tensors in enumerate(batch) if i % 2 == 1]
-        # with open('./record.txt','a+')  as f:
-        #     f.write("STEP : " + str(step))
-        #     for each_str in tokenizer.batch_decode(batch_src[0]):
-        #         f.write(each_str + '\n')
-        # for i in range(2):
-        #     if i % 2 == 0:
         output0, output1 = model(batch_src,batch_trg)
         loss1, acc1 = lossFunc(output0, output1)
-            # else:
         output0, output1 = model(batch_trg,batch_src)
         loss2, acc2 = lossFunc(output0, output1)
         loss = loss1 + loss2
@@ -72,17 +64,9 @@ def train_model(model, train_loader):  # 训练一个epoch
             f.write("STEP : " + str(step) + '\n')
             f.write(str(loss1) + " | "+  str(loss2) + '\n')
         acc = (acc1 + acc2)/2
-        # else:
-        #     output0, output1 = model(batch1['input_ids'], batch0['input_ids'])
-        #     loss, acc = lossFunc(output0, output1)
-
-        # acc = acc1/2+acc0/2
         loss = loss / 2
-        # loss = loss1/2+loss0/2
-
         input_ids = batch_src[0]
         scaler.scale(loss).backward()
-        # loss.backward()
 
         clip = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         clips.update(clip.item(), input_ids.size(0))
@@ -92,7 +76,7 @@ def train_model(model, train_loader):  # 训练一个epoch
 
         tk.set_postfix(loss=losses.avg, acc=accs.avg, clips=clips.avg)
 
-        if ((step + 1) % args.gradient_accumulation_steps == 0) or ((step + 1) == len(train_loader)):  # 梯度累加
+        if ((step + 1) % args.gradient_accumulation_steps == 0) or ((step + 1) == len(train_loader)): 
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad()
@@ -101,11 +85,8 @@ def train_model(model, train_loader):  # 训练一个epoch
     return losses.avg, accs.avg
 
 
-def test_model_simclr(model, val_loader):  # 验证
+def test_model_simclr(model, val_loader):  # Only Q Encoder or Simclr
     model.eval()
-
-    losses = AverageMeter()
-    accs = AverageMeter()
     
 
     with torch.no_grad():
@@ -143,12 +124,8 @@ def test_model_simclr(model, val_loader):  # 验证
         acc += (ts_acc == label).long().sum().item() / ts_acc.size(0)
     return acc / 2
 
-def test_model(model, val_loader):  # 验证
+def test_model(model, val_loader):  # Dual Encoder
     model.eval()
-
-    losses = AverageMeter()
-    accs = AverageMeter()
-    
 
     with torch.no_grad():
         tk = tqdm(val_loader, total=len(val_loader), position=0, leave=True)
@@ -194,12 +171,9 @@ if args.distributed:
 模型训练预测
 """
 if __name__ == '__main__':
-
-
     args.train_entity_path = "./data/train/train-en-" + args.lg + "-" + args.sn + "-entity.txt"
     args.dev_entity_path = "./data/dev/dev-en-" + args.lg + "-" + args.sn + "-entity.txt"
     args.test_entity_path = "./data/test/test-en-" + args.lg + "-" + args.sn + "-entity.txt"
-
     args.src_context_path = "./data/sentences/en-" + args.lg + "-entity-sentences." + args.sn + ".tsv"
     args.trg_context_path =  "./data/sentences/" + args.lg + "-entity-sentences." +args.sn + ".tsv"
     quene_length = int(args.quene_length)
@@ -216,15 +190,14 @@ if __name__ == '__main__':
         max_len=args.sentence_max_len,cut_type=args.cut_type)
     test_dataset = WordWithContextDatasetWW(test, en_word2context, lg_word2context,prepend_bos=with_span_eos,append_eos=with_span_eos,sampleNum=args.dev_sample_num,
         max_len=args.sentence_max_len,cut_type=args.cut_type)
-    if quene_length != 0 and args.adapt_to_dataset == 1:
-        for i in range(5,20):
-            if pow(2,i) > len(train_dataset):
-                quene_length = int(pow(2,i-1))
-                print("K: " + str(quene_length))
-                break
+    # if quene_length != 0 and args.adapt_to_dataset == 1:
+    #     for i in range(5,20):
+    #         if pow(2,i) > len(train_dataset):
+    #             quene_length = int(pow(2,i-1))
+    #             print("K: " + str(quene_length))
+    #             break
     dev_filename = '-dev_qq' if args.dev_only_q_encoder == 1 or args.simclr == 1  else '-dev_qk'
     wolinear = '-wolinear' if args.wolinear == 1 else ''
-    # trainSet, devSet = CustomDataset(train, tokenizer, device), CustomDataset(dev, tokenizer, device)
     args.output_loss_dir = './' + args.output_log_dir + '/' + str(args.train_sample_num) + '-' + args.lg+ '-'+str(args.all_sentence_num)+ '-' +args.wo_span_eos + '-' + str(quene_length) + '-' + str(para_T)  + '-' + str(args.seed) \
             + '-' + str(args.num_train_epochs) + '-' + str(args.momentum) + '-' + str(args.simclr) + dev_filename + '-layer_' + str(args.layer_id) + wolinear
     args.output_model_path = './' + args.output_log_dir+ '/' + str(args.train_sample_num) + '-' + args.lg+ '-'+str(args.all_sentence_num) + '-' +args.wo_span_eos + '-' + str(quene_length) + '-' + str(para_T) + '-' + str(args.seed) \
@@ -234,8 +207,6 @@ if __name__ == '__main__':
         train_sampler = DistributedSampler(train_dataset, num_replicas=dist.get_world_size(), rank=args.local_rank)
     else:
         train_sampler = torch.utils.data.RandomSampler(train_dataset)
-    # # dev_sampler = DistributedSampler(devSet, num_replicas=dist.get_world_size(), rank=args.local_rank)
-    # #
     train_loader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size,
                               collate_fn=train_dataset.collate,drop_last=True,num_workers=16)
     val_loader = DataLoader(dev_dataset, batch_size=args.eval_batch_size, collate_fn=dev_dataset.collate, shuffle=False,num_workers=16)
@@ -249,19 +220,11 @@ if __name__ == '__main__':
     """
     config = AutoConfig.from_pretrained(args.model_name_or_path)
     if args.simclr == 1:
-        print("This IS SIMCLR")
         model = MoCo_simclr(config=config,args=args,T=para_T).to(device)
     else:
-        if quene_length != 0:
-            print("This IS MOCO")
-        else:
-            print("This IS BYOL")
         model = MoCo(config=config,args=args,K=quene_length,T=para_T,m=args.momentum).to(device)
 
     bert_param_optimizer = model.named_parameters()
-
-    # linear_param_optimizer = list(model.projection_head.named_parameters())
-
     no_decay = ["bias", "LayerNorm.weight"]
 
     optimizer_grouped_parameters = [
@@ -276,7 +239,6 @@ if __name__ == '__main__':
         train_loader) // args.gradient_accumulation_steps,
                                                 args.num_train_epochs * len(
                                                     train_loader) // args.gradient_accumulation_steps)
-    # get_cosine_schedule_with_warmup策略，学习率先warmup一个epoch，然后cos式下降
     if args.distributed:
         model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank,find_unused_parameters=True)
     else:

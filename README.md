@@ -1,5 +1,10 @@
 # Cross-lingual Phrase Retriever
 
+## Dataset
+
+Download Our Dataset Here: [link](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing)
+
+Unzip our dataset and move dataset into data folder. (see directory structure of data in tree.txt)
 
 ## Requirements
 
@@ -10,6 +15,36 @@ Download XLMR checkpoint from Huggingface page: [link](https://huggingface.co/xl
 ```bash
 pip install -r requirements.txt
 ```
+
+## Directory Structure
+
+```
+XPR
+├── DictMatching
+│   ├── Loss.py                             XpCo loss
+│   ├── moco.py                             MoCo/XPR model
+│   └── simclr.py                           Simclr model
+├── README.md
+├── result
+├── data                                    Dataset: Details in tree.txt
+    ├── dev
+    ├── merge_dataset.py
+    ├── phrase
+    ├── sentences
+    ├── test
+    └── train
+├── inference.py                            Inference
+├── predict.py                              Dev
+├── requirements.txt
+├── trainMoCo.py                            TrainXPR
+└── utilsWord
+    ├── args.py                             Args
+    ├── sentence_process.py                 Add example sentences
+    └── tools.py
+
+```
+
+
 
 ## Run
 
@@ -30,27 +65,6 @@ CUDA_VISIBLE_DEVICES=0 python3 -m torch.distributed.launch --nproc_per_node=1 --
 ```
 
 
-
-## Directory Structure
-
-```
-XPR
-├── DictMatching
-│   ├── Loss.py                             XpCo loss
-│   ├── moco.py                             MoCo/XPR model
-│   └── simclr.py                           Simclr model
-├── README.md
-├── data                                    Dataset
-├── inference.py                            Inference
-├── predict.py                              Dev
-├── requirements.txt
-├── trainMoCo.py                            TrainXPR
-└── utilsWord
-    ├── args.py                             Args
-    ├── sentence_process.py                 Add example sentences
-    └── tools.py
-
-```
 
 ## Results:
 

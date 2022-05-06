@@ -4,46 +4,36 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import CrossEntropyLoss
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
-from torch.cuda.amp import autocast, GradScaler
 from tqdm import tqdm
 import math
 from sklearn.model_selection import *
-from transformers import AutoTokenizer, AutoConfig,
+from transformers import AutoTokenizer, AutoConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 
-from DictMatching.Loss import NTXentLoss, MoCoLoss
-from DictMatching.SimCLR import SimCLR
-from DictMatching.data.entity.readTsv import getEval
-from DictMatching.data.train.readEnWords import cleanDictionary
+from DictMatching.Loss import MoCoLoss
 from DictMatching.moco import MoCo
-from utilsWord.args import getArgs
-from utilsWord.process import CustomDataset
+# from utilsWord.args import getArgs
+from utilsWord.test_args import getArgs
 from utilsWord.tools import seed_everything, AverageMeter
 from utilsWord.sentence_process import load_words_mapping,WordWithContextDatasetWW,load_word2context_from_tsv_hiki
 
 args = getArgs()
-num = 4
+device_id = 0
 seed_everything(args.seed)  # 固定随机种子
 tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
 if args.distributed:
     device = torch.device('cuda', args.local_rank)
 else:
     
-    device = torch.device('cuda:{}'.format(str(num)))
-    torch.cuda.set_device(num)
+    device = torch.device('cuda:{}'.format(str(device_id)))
+    torch.cuda.set_device(device_id)
 lossFunc = MoCoLoss().to(device)
 
 
 def test_model(model, val_loader):  # 验证
     model.eval()
-
-    losses = AverageMeter()
-    accs = AverageMeter()
-    
-
     with torch.no_grad():
         tk = tqdm(val_loader, total=len(val_loader), position=0, leave=True)
         first_src_examples,first_trg_examples = None,None
@@ -88,20 +78,13 @@ if args.distributed:
 模型训练预测
 """
 if __name__ == '__main__':
-    test_dev = args.test_dev
-    if test_dev:
-        args.test_entity_path = "./our_dataset/dev/dev-en-" + args.test_lg + "-" + args.sn + "-entity.txt"
-    else:
-        args.test_entity_path = "./our_dataset/test/test-en-" + args.test_lg + "-" + args.sn + "-entity.txt"
-
-    args.src_context_path = "./our_dataset/sentences/en-" + args.test_lg + "-entity-sentences." + args.sn + ".tsv"
-    args.trg_context_path =  "./our_dataset/sentences/" + args.test_lg + "-entity-sentences." +args.sn + ".tsv"
-
+    test_folder = 'dev' if args.test_dev else 'test'
+    dataset_path = args.dataset_path
+    args.test_entity_path = dataset_path + "{}/{}-en-{}-32-entity.txt".format(test_folder,test_folder,args.test_lg)
+    args.src_context_path = dataset_path + "sentences/en-{}-entity-sentences.32.tsv".format(args.test_lg)
+    args.trg_context_path = dataset_path + "sentences/{}-entity-sentences.32.tsv".format(args.test_lg)
     quene_length = int(args.quene_length)
-    para_T = args.T_para
-    args.output_model_path = './' + args.output_log_dir+ '/' + str(args.train_sample_num) + '-' + args.lg+ '-'+ str(args.all_sentence_num)  + '-' +args.wo_span_eos + '-' + str(quene_length) + '-' + str(para_T) + '-' + str(args.seed) \
-        + '-' + str(args.num_train_epochs)  + '-' + str(args.momentum) + '-' + str(args.simclr) + '-dev_qq-layer_12' +  '/best.pt'
-    print(args.output_model_path)
+    para_T = args.T_para 
     test = load_words_mapping(args.test_entity_path)
     en_word2context = load_word2context_from_tsv_hiki(args.src_context_path,args.dev_all_sentence_num)
     lg_word2context = load_word2context_from_tsv_hiki(args.trg_context_path,args.dev_all_sentence_num)
@@ -119,10 +102,9 @@ if __name__ == '__main__':
     """
     config = AutoConfig.from_pretrained(args.model_name_or_path)
     model = MoCo(config=config,K=quene_length,T=para_T,args=args).to(device)
-    
         
-    # model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank,find_unused_parameters=True)
+    model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank,find_unused_parameters=True)
     if not unsup:
-        model.load_state_dict(torch.load(args.output_model_path,map_location={'cuda:1':'cuda:0'}))  # 
+        model.load_state_dict(torch.load(args.load_model_path + '/best.pt',map_location={'cuda:1':'cuda:0'}))  # 
     val_acc = test_model(model, test_loader)
     print("src-lg: " + args.lg  +" trg-lg: " + args.test_lg + " acc:", val_acc)

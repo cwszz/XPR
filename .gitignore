@@ -3,13 +3,14 @@
 */__pycache__
 *.vscode
 *._.DS_Store
+*.DS_Store
 *.csv
 data
 trans
 our_dataset
-result/*
 old_result
 aug_result/*
+log/
 *.log
 *.out
 MocoResult/*
@@ -18,3 +19,8 @@ woMoco
 zero-shot
 own_result
 cpt
+exper.py
+process_wiki_link.py
+train.sh
+result
+inference.py

@@ -102,9 +102,8 @@ if __name__ == '__main__':
     """
     config = AutoConfig.from_pretrained(args.model_name_or_path)
     model = MoCo(config=config,K=quene_length,T=para_T,args=args).to(device)
-        
-    model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank,find_unused_parameters=True)
     if not unsup:
-        model.load_state_dict(torch.load(args.load_model_path + '/best.pt',map_location={'cuda:1':'cuda:0'}))  # 
+        model.load_state_dict(torch.load('./model/pytorch_model.bin',map_location={'cuda:7':'cuda:0'}))  #
+        # model.load_state_dict(torch.load(args.load_model_path + '/best.pt',map_location={'cuda:1':'cuda:0'}))  # 
     val_acc = test_model(model, test_loader)
     print("src-lg: " + args.lg  +" trg-lg: " + args.test_lg + " acc:", val_acc)

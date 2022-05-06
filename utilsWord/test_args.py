@@ -67,7 +67,7 @@ def getArgs():
 
     parser.add_argument("--distributed",
                         type=bool,
-                        default=True,
+                        default=False,
                         help="whether distributed or not")
     parser.add_argument('--seed',
                         type=int,

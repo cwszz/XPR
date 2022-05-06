@@ -4,6 +4,7 @@
 *.vscode
 *._.DS_Store
 *.DS_Store
+model
 *.csv
 data
 trans
@@ -24,3 +25,4 @@ process_wiki_link.py
 train.sh
 result
 inference.py
+convert.py

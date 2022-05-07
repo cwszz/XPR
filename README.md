@@ -49,7 +49,7 @@ Test our method:
 ```
 bash test.sh
 ```
-The output log can be found in log folder.
+- The output log can be found in log folder.
 
 <!-- Train our method:
 

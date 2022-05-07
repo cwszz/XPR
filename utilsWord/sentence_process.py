@@ -81,6 +81,7 @@ class WordWithContextDatasetWW(Dataset):
     def __init__(self, words, word2context_en, word2context_de, max_len=256, model_name='xlm-roberta-base',
          prepend_bos=True, append_eos=True,sampleNum=8,cut_type='eos-eos'):
         self.vocab = XLMRobertaTokenizer.from_pretrained(model_name)
+        self.vocab.deprecation_warnings['sequence-length-is-longer-than-the-specified-maximum'] = True
         # special_tokens_dict = {'additional_special_token': ['<entity>']}
         # self.vocab.add_special_tokens(special_tokens_dict)
         # self.entity_id = self.vocab.added_tokens_encoder['<entity>']
@@ -125,6 +126,7 @@ class WordWithContextDatasetWW(Dataset):
     
     def str2indices(self, s):
         # t= self.vocab.encode(s)
+        # s may be longer than 512, so it will be cut in _length_cut
         return self.vocab.encode(s,add_special_tokens=False,)
         # words = []
         # for w in s:

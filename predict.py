@@ -83,7 +83,7 @@ if __name__ == '__main__':
     args.test_entity_path = dataset_path + "{}/{}-en-{}-32-entity.txt".format(test_folder,test_folder,args.test_lg)
     args.src_context_path = dataset_path + "sentences/en-{}-entity-sentences.32.tsv".format(args.test_lg)
     args.trg_context_path = dataset_path + "sentences/{}-entity-sentences.32.tsv".format(args.test_lg)
-    quene_length = int(args.quene_length)
+    queue_length = int(args.queue_length)
     para_T = args.T_para 
     test = load_words_mapping(args.test_entity_path)
     en_word2context = load_word2context_from_tsv_hiki(args.src_context_path,args.dev_all_sentence_num)
@@ -96,9 +96,9 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size, collate_fn=test_dataset.collate, shuffle=False,num_workers=16)
 
     config = AutoConfig.from_pretrained(args.model_name_or_path)
-    model = MoCo(config=config,K=quene_length,T=para_T,args=args).to(device)
+    model = MoCo(config=config,K=queue_length,T=para_T,args=args).to(device)
     if not unsup:
         model = torch.load(args.load_model_path + '/pytorch_model.bin').to(device)
         # model.load_state_dict(torch.load(args.load_model_path + '/pytorch_model.bin',map_location={'cuda:7':'cuda:0'}))  #
-        val_acc = test_model(model, test_loader)
+    val_acc = test_model(model, test_loader)
     print("src-lg: " + args.lg  +" trg-lg: " + args.test_lg + " acc:", val_acc)

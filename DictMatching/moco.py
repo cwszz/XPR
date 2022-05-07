@@ -6,7 +6,7 @@ from DictMatching.SimCLR import _get_simclr_projection_head
 
 class BackBone_Model(nn.Module):
     
-    def __init__(self, model='xlm-roberta-base', layer_id=8,is_type=True,wo_linear_head=False):
+    def __init__(self, model='xlm-roberta-base', layer_id=8,is_type=True,wo_projection_head=False):
         super(BackBone_Model, self).__init__()
         self.tokenizer = XLMRobertaTokenizer.from_pretrained(model)
         self.config = XLMRobertaConfig.from_pretrained(model)
@@ -15,8 +15,8 @@ class BackBone_Model(nn.Module):
         if self.is_type is True:
             self.model.embeddings.token_type_embeddings = nn.Embedding(2,self.config.hidden_size)
             self.model.embeddings.token_type_embeddings.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-        self.wo_linear_head = wo_linear_head
-        if not wo_linear_head:
+        self.wo_projection_head = wo_projection_head
+        if not wo_projection_head:
             self.linear_head = _get_simclr_projection_head(self.config.hidden_size, self.config.hidden_size)
         self.criterion = nn.CrossEntropyLoss()
         self.layer_id = layer_id
@@ -82,14 +82,14 @@ class BackBone_Model(nn.Module):
     def forward(self, w_indices=None, w_mask=None, w_index=None, w_length=None,w_type=None,sample_num=None):
         if sample_num != 0:
             '''w*_indices/w*_mask: [B, S]; w*_index/w*_length: [B]'''
-            if self.wo_linear_head:
+            if self.wo_projection_head:
                 opt_w = self._encode(w_indices, w_mask,w_type)  # w/o linear_head
             else:
                 opt_w = self.linear_head(self._encode(w_indices, w_mask,w_type))    # [B, S1, H]
             w1_embd = self.convert(opt_w, w_mask, w_index, w_length)   # [B, H] Mean
             w1_embd = torch.mean(w1_embd.reshape(-1,sample_num,w1_embd.size(-1)),dim=1)
         else: # only word
-            if self.wo_linear_head:
+            if self.wo_projection_head:
                 w1_embd = torch.mean(self._encode(w_indices,w_mask,w_type),dim=1)
                 # w1_embd = self._encode(w_indices,w_mask,w_type)[:,0,:] # w/o linear_head
             else:
@@ -121,8 +121,8 @@ class MoCo(nn.Module):
 
         # create the encoders
         # num_classes is the output fc dimension
-        self.encoder_q = BackBone_Model(layer_id=args.layer_id,is_type=True if args.is_type == 1 else False, wo_linear_head=True if args.wolinear == 1 else False)
-        self.encoder_k = BackBone_Model(layer_id=args.layer_id,is_type=True if args.is_type == 1 else False, wo_linear_head=True if args.wolinear == 1 else False)
+        self.encoder_q = BackBone_Model(layer_id=args.layer_id,is_type=True if args.is_type == 1 else False, wo_projection_head=True if args.wo_projection == 1 else False)
+        self.encoder_k = BackBone_Model(layer_id=args.layer_id,is_type=True if args.is_type == 1 else False, wo_projection_head=True if args.wo_projection == 1 else False)
 
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
             param_k.data.copy_(param_q.data)  # initialize

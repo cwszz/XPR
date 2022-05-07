@@ -3,8 +3,9 @@ This repository contains the code and pre-trained models for our paper XPR: Cros
 
 **************************** **Updates** ****************************
 
-- 5/10 We released our [model checkpoint](./model), [evaluation code](./predict.py) and [dataset](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing)
-- 4/19 We released [our paper](https://arxiv.org/abs/2204.08887). Check it out!
+- 5/10 We released our [model checkpoint](./model), [evaluation code](./predict.py) and [dataset](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing).
+- 4/19 We released [our paper](https://arxiv.org/abs/2204.08887). 
+- 2/26 Our paper has been accepted to **ACL2022**.
 
 ## Overview
 
@@ -45,12 +46,35 @@ Test our method:
 - Download the XPR checkpoint from Huggingface:
 [link](not finished)
 - Make sure **the model path and dataset path** in test.sh are correct
+- The output log can be found in log folder 
 
+Here is an example for evaluate XPR:
 ```
-bash test.sh
+export CUDA_VISIBLE_DEVICES='0'
+python3 predict.py \
+--lg $lg \
+--test_lg $test_lg \
+--dataset_path ./datset/ \
+--load_model_path ./model/ \
+--queue_length 0 \
+--unsupervised 0 \
+--wo_projection 0 \
+--layer_id = 12 \
+> log/test-${lg}-${test_lg}-32.log 2>&1
 ```
-- The output log can be found in log folder.
 
+- $lg: The language on which the model was trained
+- $test_lg: The language on which the model will be tested on
+- --dataset_path: The dataset folder
+- --load_model_path: The path of checkpoint folder
+- --queue_length: The length of memory queue
+- --unsupervised: Unsupervised mode
+- --wo_projection: Without SimCLR projection head
+- --layer_id: The layer to represent phrase
+
+
+## References
+Please cite this paper, if you found the resources in this repository useful.
 <!-- Train our method:
 
 ```
@@ -68,7 +92,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m torch.distributed.launch --nproc_per_node=1 --
 
 
 
-## Results:
+<!-- ## Results:
 
 ### Unsupervised Setting
 
@@ -101,4 +125,4 @@ CUDA_VISIBLE_DEVICES=0 python3 -m torch.distributed.launch --nproc_per_node=1 --
 |:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
 |CLWE|12.33|1.87|6.63|3.77|18.46|4.00|9.84|11.19|8.51|
 |CLSE|11.98|19.64|29.44|21.58|11.91|14.73|18.01|14.50|17.72|
-|XPR|**91.90**|**82.76**|**90.79**|**85.16**|**90.16**|**88.22**|**93.09**|**86.47**|**88.57**|
+|XPR|**91.90**|**82.76**|**90.79**|**85.16**|**90.16**|**88.22**|**93.09**|**86.47**|**88.57**| -->

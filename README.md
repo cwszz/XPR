@@ -3,7 +3,7 @@ This repository contains the code and pre-trained models for our paper XPR: Cros
 
 **************************** **Updates** ****************************
 
-- 5/10 We released our [model checkpoint](./model), [evaluation code](./predict.py) and [our dataset](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing)
+- 5/10 We released our [model checkpoint](./model), [evaluation code](./predict.py) and [dataset](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing)
 - 4/19 We released [our paper](https://arxiv.org/abs/2204.08887). Check it out!
 
 ## Overview
@@ -20,17 +20,17 @@ We also create a large-scale cross-lingual phrase retrieval dataset, which conta
 ## Getting Started
 In the following sections, we describe how to use our XPR.
 ### Requirements
-First, install PyTorch by following the instructions from [the official website](https://pytorch.org). To faithfully reproduce our results, please use the correct `torch==1.8.1+cu111` version corresponding to your platforms/CUDA versions. PyTorch version higher than `1.8.1` should also work. 
+- First, install PyTorch by following the instructions from [the official website](https://pytorch.org). To faithfully reproduce our results, please use the correct `torch==1.8.1+cu111` version corresponding to your platforms/CUDA versions. PyTorch version higher than `1.8.1` should also work. 
+- Then, run the following script to fetch the repo and install the remaining dependencies.
 ```bash
 git clone git@github.com:cwszz/XPR.git
 cd xpr
 pip install -r requirements.txt
-mkdir model
 mkdir log
 ```
 ### Dataset
 
-Before using xpr, please process the datasets by following the steps below.
+Before using XPR, please process the dataset by following the steps below.
 
 - Download Our Dataset Here: [link](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing)
 
@@ -49,9 +49,7 @@ Test our method:
 ```
 bash test.sh
 ```
-
-
-## Run
+The output log can be found in log folder.
 
 <!-- Train our method:
 

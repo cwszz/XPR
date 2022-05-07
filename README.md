@@ -1,17 +1,28 @@
 # Cross-lingual Phrase Retriever
+This repository contains the code and pre-trained models for our paper XPR: Cross-lingual Phrase Retriever.
+
+**************************** **Updates** ****************************
+
+- 5/10 We released our [model checkpoint](./model), [evaluation code](./predict.py) and [our dataset](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing)
+- 4/19 We released [our paper](https://arxiv.org/abs/2204.08887). Check it out!
+
+## Overview
+
+
+We propose a cross-lingual phrase retriever that extracts phrase representations from unlabeled example sentences named XPR.
+
+![](figure/overview_xpr.png)
 
 ## Dataset
 
-Download Our Dataset Here: [link](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing)
-
-Unzip our dataset and move dataset into dataset folder. (see directory structure of data in tree.txt)
+We also create a large-scale cross-lingual phrase retrieval dataset, which contains 65K bilingual phrase pairs and 4.2M example sentences in 8 English-centric language pairs.
 
 ## Requirements
 
 
 Download XLMR checkpoint from Huggingface page: [link](https://huggingface.co/xlm-roberta-base).
 
-Download XPR checkpoint from Huggingface page:
+Download XPR checkpoint from Huggingface:
 [link](not finished)
 
 

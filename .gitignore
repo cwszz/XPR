@@ -22,9 +22,7 @@ own_result
 cpt
 exper.py
 process_wiki_link.py
-train.sh
 result
 inference.py
-trainMoCo.py
 convert.py
 backup

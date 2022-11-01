@@ -1,14 +1,11 @@
 '''word with context dataset of whole words'''
-import numpy as np
 import random
 import string
-import os
 import torch
-import ipdb
 import csv
 from collections import defaultdict
-from transformers import XLMRobertaTokenizer, XLMRobertaModel
-from torch.utils.data import Dataset, DataLoader
+from transformers import XLMRobertaTokenizer
+from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 import logging
 logging.basicConfig(level=logging.ERROR)
@@ -33,20 +30,18 @@ def my_pad_sequence(sequences, batch_first=False, padding_value=0.0,max_len=512)
 
     return out_tensor
 
-def load_word2context_from_tsv_hiki(tsv_path,sentence_num):
-  print("Loading tsv from %s ..." % tsv_path)
-  word2context = defaultdict(list)
-  with open(tsv_path) as fp:
-    rows = [l.strip() for l in fp]
-  for row in rows:
-    row = row.split("\t")
-    word = row[0]
-    sentences = row[2:2+sentence_num]
-    # if len(sentences) != 32:
-    #     print(32)
-    tokenized_sentence = sentences
-    word2context[word.lower()] = tokenized_sentence
-  return word2context
+def load_word2context_from_tsv(tsv_path, sentence_num):
+    print("Loading tsv from %s ..." % tsv_path)
+    word2context = defaultdict(list)
+    with open(tsv_path) as fp:
+        rows = [l.strip() for l in fp]
+    for row in rows:
+        row = row.split("\t")
+        word = row[0]
+        sentences = row[2:2+sentence_num]
+        tokenized_sentence = sentences
+        word2context[word.lower()] = tokenized_sentence
+    return word2context
 
 def load_word2context_from_csv(csv_path):
     print("Loading csv from %s ..." % csv_path)
@@ -63,9 +58,8 @@ def load_word2context_from_csv(csv_path):
 
 
 def load_words_mapping(path):
-    '''from en to de'''
+    '''from en to lg'''
     print(f'Loading words mapping from {path}')
-    # with open(pathsrc) as f:
     f = open(path)
     words = []
     for eachline in f.readlines():
@@ -79,14 +73,10 @@ def load_words_mapping(path):
 class WordWithContextDatasetWW(Dataset):
     
     def __init__(self, words, word2context_en, word2context_de, max_len=256, model_name='xlm-roberta-base',
-         prepend_bos=True, append_eos=True,sampleNum=8,cut_type='eos-eos'):
+         prepend_bos=True, append_eos=True, sampleNum=8):
         self.vocab = XLMRobertaTokenizer.from_pretrained(model_name)
         self.vocab.deprecation_warnings['sequence-length-is-longer-than-the-specified-maximum'] = True
-        # special_tokens_dict = {'additional_special_token': ['<entity>']}
-        # self.vocab.add_special_tokens(special_tokens_dict)
-        # self.entity_id = self.vocab.added_tokens_encoder['<entity>']
         self.max_len = max_len
-        self.cut_type = cut_type
         self.prepend_bos = prepend_bos
         self.append_eos = append_eos
         self.sampleNum = sampleNum  
@@ -99,7 +89,7 @@ class WordWithContextDatasetWW(Dataset):
                 notfound += notfound1+notfound2
                 if sentence_bag1 and sentence_bag2:
                     self.dataset.append(((w1, w2), (sentence_bag1, sentence_bag2)))
-        print(f'[!] collect {len(self.dataset)} training samples')
+        print(f'[!] collect {len(self.dataset)} samples')
         print("没找到共" +str(notfound))
         
     def convert(self, bag, word):
@@ -122,26 +112,16 @@ class WordWithContextDatasetWW(Dataset):
             before_word = sentence[:idx]
             after_word = sentence[idx+len(word):]
             rest.append((before_word, word, after_word))
-        return rest,cnt
+        return rest, cnt
     
     def str2indices(self, s):
-        # t= self.vocab.encode(s)
-        # s may be longer than 512, so it will be cut in _length_cut
         return self.vocab.encode(s,add_special_tokens=False,)
-        # words = []
-        # for w in s:
-        #     words.extend(self.vocab.encode(w, add_special_tokens=False))
-        # return words
     
-    def _length_cut_old(self, before, word, after,cut_type='eos-eos'):
+    def _length_cut(self, before, word, after):
         '''return tensor and the index of the word in it, and the length of the word'''
-        if cut_type == 'eos-eos' or 'cls-eos-eos' or 'cls-bos-eos':
-            max_len = self.max_len - 4
-        elif cut_type == 'bos-eos':
-            max_len = self.max_len - 2
+        max_len = self.max_len - 4 # CLS ... EOS word EOS ... EOS
         length_before, length_word, length_after = len(before), len(word), len(after)
         while length_before + length_word + length_after > max_len:
-            l = max_len - length_before - length_after - length_word
             if length_before > length_after:
                 before = before[1:]
             else:
@@ -149,94 +129,14 @@ class WordWithContextDatasetWW(Dataset):
             length_before, length_after = len(before), len(after)
 
         assert len(before) + len(word) + len(after) <= max_len
-        # before +  bos + word + eos + after
-        # not bos + before + eos + word + eos + after + eos
-        if cut_type == 'eos-eos' or 'cls-eos-eos':
-            if self.prepend_bos:
-                word = [self.vocab.eos_token_id] + word
-            if self.append_eos:
-                word = word + [self.vocab.eos_token_id]
-            indices = [self.vocab.bos_token_id] + before + word + after + [self.vocab.eos_token_id]
-            assert len(indices) <= max_len + 4
-            index = len(before) + 1
-            return torch.LongTensor(indices), index, len(word)
-        elif cut_type == 'bos-eos':
-            if self.prepend_bos:
-                word = [self.vocab.bos_token_id] + word
-            if self.append_eos:
-                word = word + [self.vocab.eos_token_id]
-            indices = before + word + after
-            assert len(indices) <= max_len + 2
-            index = len(before)
-            return torch.LongTensor(indices), index, len(word)
-        elif cut_type == 'cls-bos-eos':
-            if self.prepend_bos:
-                word = [self.vocab.bos_token_id] + word
-            if self.append_eos:
-                word = word + [self.vocab.eos_token_id]
-            indices = [self.vocab.bos_token_id] + before + word + after + [self.vocab.eos_token_id]
-            assert len(indices) <= max_len + 4
-            index = len(before) + 1
-            return torch.LongTensor(indices), index, len(word)
-
-    def _length_cut(self, before, word, after,cut_type='eos-eos'):
-        '''return tensor and the index of the word in it, and the length of the word'''
-        if cut_type == 'eos-eos' or 'cls-eos-eos' or 'cls-bos-eos':
-            if self.append_eos and self.prepend_bos:
-                max_len = self.max_len - 4
-            elif not self.append_eos and not self.prepend_bos:
-                max_len = self.max_len - 2
-            else:
-                return None
-        elif cut_type == 'bos-eos':
-            if self.append_eos and self.prepend_bos:
-                max_len = self.max_len - 2 # 本就没有bos + sentence + eos
-            elif not self.append_eos and not self.prepend_bos:
-                max_len = self.max_len
-            else:
-                return None
-           
-        length_before, length_word, length_after = len(before), len(word), len(after)
-        while length_before + length_word + length_after > max_len:
-            l = max_len - length_before - length_after - length_word
-            if length_before > length_after:
-                before = before[1:]
-            else:
-                after = after[:-1]
-            length_before, length_after = len(before), len(after)
-
-        assert len(before) + len(word) + len(after) <= max_len
-        # before +  bos + word + eos + after
-        # not bos + before + eos + word + eos + after + eos
-        if cut_type == 'eos-eos' or 'cls-eos-eos': # cls-eos-eos 是 取第一个bos为表示
-            if self.prepend_bos:
-                word = [self.vocab.eos_token_id] + word
-            if self.append_eos:
-                word = word + [self.vocab.eos_token_id]
-            indices = [self.vocab.bos_token_id] + before + word + after + [self.vocab.eos_token_id]
-            # assert len(indices) <= max_len + 4
-            assert len(indices) <= self.max_len
-            index = len(before) + 1  # before 前有bos，所以是word中第一个词
-            return torch.LongTensor(indices), index, len(word)
-        # elif cut_type == 'bos-eos':
-        #     if self.prepend_bos:
-        #         word = [self.vocab.bos_token_id] + word
-        #     if self.append_eos:
-        #         word = word + [self.vocab.eos_token_id]
-        #     indices = before + word + after
-        #     assert len(indices) <= max_len + 2
-        #     index = len(before)
-        #     return torch.LongTensor(indices), index, len(word)
-        # elif cut_type == 'cls-bos-eos':
-        #     if self.prepend_bos:
-        #         word = [self.vocab.bos_token_id] + word
-        #     if self.append_eos:
-        #         word = word + [self.vocab.eos_token_id]
-        #     indices = [self.vocab.bos_token_id] + before + word + after + [self.vocab.eos_token_id]
-        #     assert len(indices) <= self.max_len
-        #     index = len(before) + 1
-        #     return torch.LongTensor(indices), index, len(word)
-
+        if self.prepend_bos:
+            word = [self.vocab.eos_token_id] + word
+        if self.append_eos:
+            word = word + [self.vocab.eos_token_id]
+        indices = [self.vocab.bos_token_id] + before + word + after + [self.vocab.eos_token_id]
+        assert len(indices) <= max_len + 4
+        index = len(before) + 1
+        return torch.LongTensor(indices), index, len(word)
     
     def __len__(self):
         return len(self.dataset)
@@ -256,12 +156,12 @@ class WordWithContextDatasetWW(Dataset):
         
         for each_sentence_w1,each_sentence_w2 in zip(sentences_w1,sentences_w2):
             s_before_w1, s_word_w1, s_after_w1 = self.str2indices(each_sentence_w1[0]), self.str2indices(each_sentence_w1[1]), self.str2indices(each_sentence_w1[2])
-            indices_w1, w1_index, w1_length = self._length_cut_old(s_before_w1, s_word_w1, s_after_w1)
+            indices_w1, w1_index, w1_length = self._length_cut(s_before_w1, s_word_w1, s_after_w1)
             sentence_subset_index_w1.append(indices_w1)
             subset_index_w1.append(w1_index)
             subset_leng_w1.append(w1_length)
             s_before_w2, s_word_w2, s_after_w2 = self.str2indices(each_sentence_w2[0]), self.str2indices(each_sentence_w2[1]), self.str2indices(each_sentence_w2[2])
-            indices_w2, w2_index, w2_length = self._length_cut_old(s_before_w2, s_word_w2, s_after_w2)
+            indices_w2, w2_index, w2_length = self._length_cut(s_before_w2, s_word_w2, s_after_w2)
             sentence_subset_index_w2.append(indices_w2)
             subset_index_w2.append(w2_index)
             subset_leng_w2.append(w2_length)
@@ -315,10 +215,6 @@ class WordWithContextDatasetWW(Dataset):
         w2_mask = self.generate_mask(indices_w2)
         w1_type = self.generate_type(indices_w1,w1_index,w1_length)
         w2_type = self.generate_type(indices_w2,w2_index,w2_length)
-        # w1_mask = w1_mask.reshape(-1,self.sampleNum,indices_w1.size(-1))
-        # w2_mask = w2_mask.reshape(-1,self.sampleNum,indices_w2.size(-1))
-        # indices_w1 = indices_w1.reshape(-1,self.sampleNum,indices_w1.size(-1))
-        # indices_w2 = indices_w2.reshape(-1,self.sampleNum,indices_w2.size(-1))
         
         # [B*sampleNum]
         w1_index = torch.cat(w1_index,dim=0)
@@ -328,13 +224,3 @@ class WordWithContextDatasetWW(Dataset):
 
         return indices_w1, indices_w2, w1_mask, w2_mask, w1_index, w2_index, w1_length, w2_length,w1_type,w2_type
         
-
-if __name__ == "__main__":
-    words = load_words_mapping('data/bwe/bwe_raw/train.HIML.txt')
-    de_word2context = load_word2context_from_csv('data/rwt/bwe_semts_de.csv')
-    en_word2context = load_word2context_from_csv('data/rwt/bwe_semts_en.csv')
-    dataset = WordWithContextDatasetWW(words, en_word2context, de_word2context)
-    dataloader = DataLoader(dataset, shuffle=False, batch_size=4, collate_fn=dataset.collate)
-    import ipdb
-    for batch in dataloader:
-        ipdb.set_trace()

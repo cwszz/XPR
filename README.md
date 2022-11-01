@@ -65,7 +65,7 @@ python3 predict.py \
 
 - $lg: The language on which the model was trained
 - $test_lg: The language on which the model will be tested on
-- --dataset_path: The dataset folder
+- --dataset_path: The path of dataset folder
 - --load_model_path: The path of checkpoint folder
 - --queue_length: The length of memory queue
 - --unsupervised: Unsupervised mode

@@ -2,24 +2,50 @@ import torch
 import torch.nn as nn
 from transformers import XLMRobertaModel,XLMRobertaConfig,XLMRobertaTokenizer
 from torch.cuda.amp import autocast
-from DictMatching.SimCLR import _get_simclr_projection_head
+
+def _get_simclr_projection_head(num_ftrs: int, out_dim: int):
+    """Returns a 2-layer projection head.
+
+    Reference (07.12.2020):
+    https://github.com/google-research/simclr/blob/master/model_util.py#L141
+
+    """
+    modules = [
+        nn.Linear(num_ftrs, num_ftrs*4),
+        # nn.BatchNorm1d(num_ftrs),
+        nn.ReLU(),
+        nn.Linear(num_ftrs*4, out_dim)
+    ]
+    return nn.Sequential(*modules)
 
 class BackBone_Model(nn.Module):
     
-    def __init__(self, model='xlm-roberta-base', layer_id=8,is_type=True,wo_projection_head=False):
+    def __init__(self, model='xlm-roberta-base', layer_id=8, wo_linear_head=False):
         super(BackBone_Model, self).__init__()
         self.tokenizer = XLMRobertaTokenizer.from_pretrained(model)
         self.config = XLMRobertaConfig.from_pretrained(model)
         self.model = XLMRobertaModel.from_pretrained(model)
-        self.is_type = is_type
-        if self.is_type is True:
-            self.model.embeddings.token_type_embeddings = nn.Embedding(2,self.config.hidden_size)
-            self.model.embeddings.token_type_embeddings.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-        self.wo_projection_head = wo_projection_head
-        if not wo_projection_head:
-            self.linear_head = _get_simclr_projection_head(self.config.hidden_size, self.config.hidden_size)
+        # self.wo_linear_head = wo_linear_head
+        # if not self.wo_linear_head:
+        self.linear_head = _get_simclr_projection_head(self.config.hidden_size, self.config.hidden_size)
         self.criterion = nn.CrossEntropyLoss()
         self.layer_id = layer_id
+
+    # def __init__(self, model='xlm-roberta-base', layer_id=8,is_type=True,wo_linear_head=False):
+    #     super(BackBone_Model, self).__init__()
+    #     self.tokenizer = XLMRobertaTokenizer.from_pretrained(model)
+    #     self.config = XLMRobertaConfig.from_pretrained(model)
+    #     self.model = XLMRobertaModel.from_pretrained(model)
+    #     self.is_type = is_type
+    #     if self.is_type is True:
+    #         self.model.embeddings.token_type_embeddings = nn.Embedding(2,self.config.hidden_size)
+    #         self.model.embeddings.token_type_embeddings.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+    #     self.wo_linear_head = wo_linear_head
+    #     if not self.wo_linear_head:
+    #         self.linear_head = _get_simclr_projection_head(self.config.hidden_size, self.config.hidden_size)
+    #     self.criterion = nn.CrossEntropyLoss()
+    #     self.layer_id = layer_id
+        # print(self.wo_linear_head)
         
     def convert(self, opt, mask, index, length):  # Conver Phrase to [1,H]
         '''obtain the opt and word position information (index, length),
@@ -71,10 +97,10 @@ class BackBone_Model(nn.Module):
         return word_embd
 
     def _encode(self, input_ids, mask,type_ids):
-        if self.is_type:
-            all_layers_hidden = self.model(input_ids=input_ids, attention_mask=mask,token_type_ids=type_ids,output_hidden_states=True)[2]
-        else:
-            all_layers_hidden = self.model(input_ids=input_ids, attention_mask=mask,token_type_ids=None,output_hidden_states=True)[2]
+        # if self.is_type:
+        #     all_layers_hidden = self.model(input_ids=input_ids, attention_mask=mask,token_type_ids=type_ids,output_hidden_states=True)[2]
+        # else:
+        all_layers_hidden = self.model(input_ids=input_ids, attention_mask=mask,token_type_ids=None,output_hidden_states=True)[2]
         return all_layers_hidden[self.layer_id]
         
     '''Id -> Mask -> Enocode -> projection_head'''
@@ -82,20 +108,22 @@ class BackBone_Model(nn.Module):
     def forward(self, w_indices=None, w_mask=None, w_index=None, w_length=None,w_type=None,sample_num=None):
         if sample_num != 0:
             '''w*_indices/w*_mask: [B, S]; w*_index/w*_length: [B]'''
-            if self.wo_projection_head:
-                opt_w = self._encode(w_indices, w_mask,w_type)  # w/o linear_head
-            else:
-                opt_w = self.linear_head(self._encode(w_indices, w_mask,w_type))    # [B, S1, H]
+            # print(self.wo_linear_head)
+            # if self.wo_linear_head:
+            #     opt_w = self._encode(w_indices, w_mask,w_type)  # w/o linear_head
+            # else:
+            #     opt_w = self.linear_head(self._encode(w_indices, w_mask,w_type))    # [B, S1, H]
+            opt_w = self.linear_head(self._encode(w_indices, w_mask,w_type))
             w1_embd = self.convert(opt_w, w_mask, w_index, w_length)   # [B, H] Mean
             w1_embd = torch.mean(w1_embd.reshape(-1,sample_num,w1_embd.size(-1)),dim=1)
         else: # only word
-            if self.wo_projection_head:
-                w1_embd = torch.mean(self._encode(w_indices,w_mask,w_type),dim=1)
-                # w1_embd = self._encode(w_indices,w_mask,w_type)[:,0,:] # w/o linear_head
-            else:
-                # w1_embd = self.linear_head(self._encode(w_indices,w_mask,w_type))[:,0,:]
-                w1_embd = torch.mean(self.linear_head(self._encode(w_indices,w_mask,w_type)),dim=1)
-        
+            # if self.wo_linear_head:
+            #     w1_embd = torch.mean(self._encode(w_indices,w_mask,w_type),dim=1)
+            #     # w1_embd = self._encode(w_indices,w_mask,w_type)[:,0,:] # w/o linear_head
+            # else:
+            #     # w1_embd = self.linear_head(self._encode(w_indices,w_mask,w_type))[:,0,:]
+            #     w1_embd = torch.mean(self.linear_head(self._encode(w_indices,w_mask,w_type)),dim=1)
+            w1_embd = torch.mean(self.linear_head(self._encode(w_indices,w_mask,w_type)),dim=1)
         return w1_embd
 
 
@@ -120,9 +148,9 @@ class MoCo(nn.Module):
         self.T = T
 
         # create the encoders
-        # num_classes is the output fc dimension
-        self.encoder_q = BackBone_Model(layer_id=args.layer_id,is_type=True if args.is_type == 1 else False, wo_projection_head=True if args.wo_projection == 1 else False)
-        self.encoder_k = BackBone_Model(layer_id=args.layer_id,is_type=True if args.is_type == 1 else False, wo_projection_head=True if args.wo_projection == 1 else False)
+        # num_classes is the output fc dimension #  wo_linear_head=True if args.wo_projection == 1 else False
+        self.encoder_q = BackBone_Model(layer_id=args.layer_id)
+        self.encoder_k = BackBone_Model(layer_id=args.layer_id)
 
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
             param_k.data.copy_(param_q.data)  # initialize

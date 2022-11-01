@@ -1,5 +1,4 @@
 import argparse
-from email.policy import default
 
 lg = 'fr'
 sample_num = 4
@@ -9,23 +8,23 @@ sn = '32'
 def getArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lg",
-                        default="fr",
+                        default="es",
                         type=str,
-                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-    parser.add_argument("--test_lg",
-                        default="zh",
-                        type=str,
-                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
+                        help="Train/Model language")
+    # parser.add_argument("--test_lg",
+    #                     default="zh",
+    #                     type=str,
+    #                     help="Test language")
 
     parser.add_argument("--sn",
                         default='32',
                         type=str,
-                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
+                        help="available sentence number")
 
     parser.add_argument("--data_dir",
-                        default="./data/condition_target_ner/raw_data/",
+                        default="./data/",
                         type=str,
-                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
+                        help="The input data dir. ")
     parser.add_argument("--model_name_or_path",
                         default="xlm-roberta-base",
                         type=str,
@@ -34,38 +33,34 @@ def getArgs():
                         default='./output/',
                         type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
+    parser.add_argument("--train_phrase_path",
+                        type=str,
+                        default='',
+                        help="train phrase path")
 
-    parser.add_argument("--test_entity_path",
+    parser.add_argument("--test_phrase_path",
                         type=str,
                         default='',
-                        # default="/home/zhq/Moco/trans/test/test-en-" + lg + "-" + sn + "-entity.txt",
-                        help="train-entity")
+                        help="test phrase path")
 
-    parser.add_argument("--train_entity_path",
+ 
+    parser.add_argument("--dev_phrase_path",
                         type=str,
                         default='',
-                        # default="/home/zhq/Moco/trans/train/train-en-" + lg + "-" + sn + "-entity.txt",
-                        help="train-entity")
-    parser.add_argument("--dev_entity_path",
-                        type=str,
-                        default='',
-                        # default="/home/zhq/Moco/trans/dev/dev-en-" + lg + "-" + sn + "-entity.txt",
-                        help="dev-entity")
+                        help="dev phrase path")
     parser.add_argument("--src_context_path",
                         type=str,
                         default='',
-                        # default="/home/zhq/Moco/trans/en-" + lg + "-entity-sentences." + sn + ".tsv",
-                        help="src-entity-context-pairs")
+                        help="src example sentences")
     parser.add_argument("--trg_context_path",
                         type=str,
                         default='',
-                        # default="/home/zhq/Moco/trans/" + lg + "-entity-sentences." + sn + ".tsv",
-                        help="trg-entity-context-pairs")
+                        help="trg example sentencess")
 
-    parser.add_argument("--cache_dir",
-                        default="",
-                        type=str,
-                        help="Where do you want to store the pre-trained models downloaded from s3")
+    # parser.add_argument("--cache_dir",
+    #                     default="",
+    #                     type=str,
+    #                     help="Where do you want to store the pre-trained models downloaded from s3")
     parser.add_argument("--gpu_id",
                         default="0",
                         type=str,
@@ -104,10 +99,10 @@ def getArgs():
                         default=2e-5,
                         type=float,
                         help="The initial learning rate for Adam.")
-    parser.add_argument("--crf_learning_rate",
-                        default=1e-4,
-                        type=float,
-                        help="The initial crf learning rate for Adam.")
+    # parser.add_argument("--crf_learning_rate",
+    #                     default=1e-4,
+    #                     type=float,
+    #                     help="The initial crf learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
                         default=100,
                         type=int,
@@ -138,7 +133,7 @@ def getArgs():
 
     parser.add_argument("--distributed",
                         type=bool,
-                        default=False,
+                        default=True,
                         help="whether distributed or not")
     parser.add_argument('--seed',
                         type=int,
@@ -160,7 +155,7 @@ def getArgs():
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
     parser.add_argument("--train_batch_size",
-                        default=32,
+                        default=8,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -173,13 +168,13 @@ def getArgs():
     parser.add_argument('--all_sentence_num', type=int, default=32)
     parser.add_argument('--dev_all_sentence_num', type=int,
                         default=32, help="only for predict")
-    parser.add_argument('--dev_sample_num', type=int, default=int(sn))
+    parser.add_argument('--dev_sample_num', type=int, default=16)
     parser.add_argument('--cut_type', type=str, default='eos-eos')
     parser.add_argument('--wo_span_eos', type=str, default='true')
     parser.add_argument('--is_type', type=int, default=-1, help='token_type')
-    parser.add_argument('--train_sample_num', type=int, default=sample_num)
+    parser.add_argument('--train_sample_num', type=int, default=1)
     parser.add_argument('--sentence_max_len', type=int, default=80)
-    parser.add_argument('--quene_length', type=int, default=2048)
+    parser.add_argument('--queue_length', type=int, default=2048)
     parser.add_argument('--momentum', type=float, default=0.999)
     parser.add_argument('--T_para', type=float, default=0.04)
     parser.add_argument('--layer_id', type=int, default=12)

@@ -1,23 +1,17 @@
-import json
-import pandas as pd
-import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader, DistributedSampler
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 import math
 from sklearn.model_selection import *
 from transformers import AutoTokenizer, AutoConfig
-from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 
 from DictMatching.Loss import MoCoLoss
 from DictMatching.moco import MoCo
-# from utilsWord.args import getArgs
 from utilsWord.test_args import getArgs
-from utilsWord.tools import seed_everything, AverageMeter
-from utilsWord.sentence_process import load_words_mapping,WordWithContextDatasetWW,load_word2context_from_tsv_hiki
+from utilsWord.tools import seed_everything
+from utilsWord.sentence_process import load_words_mapping,WordWithContextDatasetWW,load_word2context_from_tsv
 
 args = getArgs()
 device_id = 0
@@ -26,9 +20,9 @@ tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
 if args.distributed:
     device = torch.device('cuda', args.local_rank)
 else:
-    
     device = torch.device('cuda:{}'.format(str(device_id)))
     torch.cuda.set_device(device_id)
+# device = torch.device('cpu')
 lossFunc = MoCoLoss().to(device)
 
 
@@ -80,25 +74,26 @@ if args.distributed:
 if __name__ == '__main__':
     test_folder = 'dev' if args.test_dev else 'test'
     dataset_path = args.dataset_path
-    args.test_entity_path = dataset_path + "{}/{}-en-{}-32-entity.txt".format(test_folder,test_folder,args.test_lg)
-    args.src_context_path = dataset_path + "sentences/en-{}-entity-sentences.32.tsv".format(args.test_lg)
-    args.trg_context_path = dataset_path + "sentences/{}-entity-sentences.32.tsv".format(args.test_lg)
+    args.test_phrase_path = dataset_path + "{}/{}-en-{}-32-phrase.txt".format(test_folder,test_folder,args.test_lg)
+    args.src_context_path = dataset_path + "sentences/en-{}-phrase-sentences.32.tsv".format(args.test_lg)
+    args.trg_context_path = dataset_path + "sentences/{}-phrase-sentences.32.tsv".format(args.test_lg)
     queue_length = int(args.queue_length)
     para_T = args.T_para 
-    test = load_words_mapping(args.test_entity_path)
-    en_word2context = load_word2context_from_tsv_hiki(args.src_context_path,args.dev_all_sentence_num)
-    lg_word2context = load_word2context_from_tsv_hiki(args.trg_context_path,args.dev_all_sentence_num)
+    test_phrase_pairs = load_words_mapping(args.test_phrase_path)
+    en_word2context = load_word2context_from_tsv(args.src_context_path,args.dev_all_sentence_num)
+    lg_word2context = load_word2context_from_tsv(args.trg_context_path,args.dev_all_sentence_num)
     unsup = args.unsupervised
     best_acc = 0
     
-    test_dataset = WordWithContextDatasetWW(test, en_word2context, lg_word2context,sampleNum=args.dev_sample_num,
-        max_len=args.sentence_max_len,cut_type=args.cut_type)
+    test_dataset = WordWithContextDatasetWW(test_phrase_pairs, en_word2context, lg_word2context, sampleNum=args.dev_sample_num,
+        max_len=args.sentence_max_len)
     test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size, collate_fn=test_dataset.collate, shuffle=False,num_workers=16)
 
     config = AutoConfig.from_pretrained(args.model_name_or_path)
-    model = MoCo(config=config,K=queue_length,T=para_T,args=args).to(device)
+    model = MoCo(config=config,K=queue_length,T=para_T, args=args).to(device)
     if not unsup:
-        model = torch.load(args.load_model_path + '/pytorch_model.bin').to(device)
-        # model.load_state_dict(torch.load(args.load_model_path + '/pytorch_model.bin',map_location={'cuda:7':'cuda:0'}))  #
+        model = torch.load(args.load_model_path +'/xpr_model.bin')
+        model.to(device)
+        
     val_acc = test_model(model, test_loader)
     print("src-lg: " + args.lg  +" trg-lg: " + args.test_lg + " acc:", val_acc)

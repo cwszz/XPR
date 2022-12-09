@@ -57,8 +57,8 @@ def train_model(model, train_loader):  # Train an epoch
         # loss.backward()
         scaler.scale(loss).backward()
 
-        clip = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        clips.update(clip.item(), input_ids.size(0))
+        # clip = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        # clips.update(clip.item(), input_ids.size(0))
 
         losses.update(loss.item(), input_ids.size(0))
         accs.update(acc, input_ids.size(0))

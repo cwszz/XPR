@@ -133,7 +133,7 @@ class MoCo(nn.Module):
     https://arxiv.org/abs/1911.05722
     """
 
-    def __init__(self,args, K=2048, m=0.999, T=0.04,backbone=None,config=None):
+    def __init__(self,args, K=2048, m=0.999, T=0.04,config=None):
         """
         dim: feature dimension (default: 128)
         K: queue size; number of negative keys (default: 65536)
@@ -150,8 +150,8 @@ class MoCo(nn.Module):
         # create the encoders
         # num_classes is the output fc dimension #  wo_linear_head=True if args.wo_projection == 1 else False
         # backbone = backbone if backbone is not None else 'xlm-roberta-base'
-        self.encoder_q = BackBone_Model(model=backbone,layer_id=args.layer_id)
-        self.encoder_k = BackBone_Model(model=backbone,layer_id=args.layer_id)
+        self.encoder_q = BackBone_Model(layer_id=args.layer_id)
+        self.encoder_k = BackBone_Model(layer_id=args.layer_id)
         # self.encoder_q = AutoModel.from_pretrained('./model')
         # self.encoder_k = AutoModel.from_pretrained('./model')
 

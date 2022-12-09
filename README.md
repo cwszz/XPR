@@ -29,6 +29,7 @@ cd xpr
 pip install -r requirements.txt
 mkdir data
 mkdir model
+mkdir result
 ```
 ### Dataset
 
@@ -48,6 +49,9 @@ Before using XPR, please process the checkpoint by following the steps below.
 
 ### Train XPR
 <!-- Download XLMR checkpoint from Huggingface page: [link](https://huggingface.co/xlm-roberta-base). -->
+```
+bash train.sh
+```
 
 ### Evaluation
 

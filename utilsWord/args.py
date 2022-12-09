@@ -155,7 +155,7 @@ def getArgs():
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
     parser.add_argument("--train_batch_size",
-                        default=8,
+                        default=32,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
@@ -172,7 +172,7 @@ def getArgs():
     parser.add_argument('--cut_type', type=str, default='eos-eos')
     parser.add_argument('--wo_span_eos', type=str, default='true')
     parser.add_argument('--is_type', type=int, default=-1, help='token_type')
-    parser.add_argument('--train_sample_num', type=int, default=1)
+    parser.add_argument('--train_sample_num', type=int, default=4)
     parser.add_argument('--sentence_max_len', type=int, default=80)
     parser.add_argument('--queue_length', type=int, default=2048)
     parser.add_argument('--momentum', type=float, default=0.999)

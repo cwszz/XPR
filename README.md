@@ -28,6 +28,7 @@ git clone git@github.com:cwszz/XPR.git
 cd xpr
 pip install -r requirements.txt
 mkdir data
+mkdir model
 ```
 ### Dataset
 
@@ -59,12 +60,16 @@ Test our method:
 
 Here is an example for evaluate XPR:
 ```
+bash test.sh
+```
+or
+```
 export CUDA_VISIBLE_DEVICES='0'
 python3 predict.py \
 --lg $lg \
 --test_lg $test_lg \
 --dataset_path ./datset/ \
---load_model_path ./model/ \
+--load_model_path ./model/pytorch_model.bin \
 --queue_length 0 \
 --unsupervised 0 \
 --wo_projection 0 \

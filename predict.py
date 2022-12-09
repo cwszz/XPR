@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import math
 from sklearn.model_selection import *
-from transformers import AutoTokenizer, AutoConfig
+from transformers import AutoTokenizer, AutoConfig, AutoModel
 import torch.distributed as dist
 
 from DictMatching.Loss import MoCoLoss
@@ -16,7 +16,8 @@ from utilsWord.sentence_process import load_words_mapping,WordWithContextDataset
 args = getArgs()
 device_id = 0
 seed_everything(args.seed)  # 固定随机种子
-tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
+# tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
+tokenizer = AutoTokenizer.from_pretrained('xlm-roberta-base')
 if args.distributed:
     device = torch.device('cuda', args.local_rank)
 else:
@@ -89,10 +90,11 @@ if __name__ == '__main__':
         max_len=args.sentence_max_len)
     test_loader = DataLoader(test_dataset, batch_size=args.eval_batch_size, collate_fn=test_dataset.collate, shuffle=False,num_workers=16)
 
-    config = AutoConfig.from_pretrained(args.model_name_or_path)
-    model = MoCo(config=config,K=queue_length,T=para_T, args=args).to(device)
+    config = AutoConfig.from_pretrained('xlm-roberta-base')
+    # c = torch.load('./model/pytorch_model.bin')
+    model = MoCo(config=config,args=args,K=queue_length,T=para_T,m=args.momentum).to(device)
     if not unsup:
-        model = torch.load(args.load_model_path +'/xpr_model.bin')
+        model = torch.load('./model/xpr_model.bin')
         model.to(device)
         
     val_acc = test_model(model, test_loader)

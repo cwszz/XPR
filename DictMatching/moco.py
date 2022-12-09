@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformers import XLMRobertaModel,XLMRobertaConfig,XLMRobertaTokenizer
+from transformers import AutoTokenizer, AutoConfig, AutoModel
 from torch.cuda.amp import autocast
 
 def _get_simclr_projection_head(num_ftrs: int, out_dim: int):
@@ -22,9 +22,9 @@ class BackBone_Model(nn.Module):
     
     def __init__(self, model='xlm-roberta-base', layer_id=8, wo_linear_head=False):
         super(BackBone_Model, self).__init__()
-        self.tokenizer = XLMRobertaTokenizer.from_pretrained(model)
-        self.config = XLMRobertaConfig.from_pretrained(model)
-        self.model = XLMRobertaModel.from_pretrained(model)
+        self.tokenizer = AutoTokenizer.from_pretrained(model)
+        self.config = AutoConfig.from_pretrained(model)
+        self.model = AutoModel.from_pretrained(model)
         # self.wo_linear_head = wo_linear_head
         # if not self.wo_linear_head:
         self.linear_head = _get_simclr_projection_head(self.config.hidden_size, self.config.hidden_size)
@@ -133,7 +133,7 @@ class MoCo(nn.Module):
     https://arxiv.org/abs/1911.05722
     """
 
-    def __init__(self,args, K=2048, m=0.999, T=0.04,config=None):
+    def __init__(self,args, K=2048, m=0.999, T=0.04,backbone=None,config=None):
         """
         dim: feature dimension (default: 128)
         K: queue size; number of negative keys (default: 65536)
@@ -149,8 +149,11 @@ class MoCo(nn.Module):
 
         # create the encoders
         # num_classes is the output fc dimension #  wo_linear_head=True if args.wo_projection == 1 else False
-        self.encoder_q = BackBone_Model(layer_id=args.layer_id)
-        self.encoder_k = BackBone_Model(layer_id=args.layer_id)
+        # backbone = backbone if backbone is not None else 'xlm-roberta-base'
+        self.encoder_q = BackBone_Model(model=backbone,layer_id=args.layer_id)
+        self.encoder_k = BackBone_Model(model=backbone,layer_id=args.layer_id)
+        # self.encoder_q = AutoModel.from_pretrained('./model')
+        # self.encoder_k = AutoModel.from_pretrained('./model')
 
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
             param_k.data.copy_(param_q.data)  # initialize

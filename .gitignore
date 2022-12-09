@@ -11,7 +11,7 @@ trans
 our_dataset
 old_result
 aug_result/*
-log/
+log/*
 *.log
 *.out
 MocoResult/*

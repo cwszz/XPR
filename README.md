@@ -3,7 +3,7 @@ This repository contains the code and pre-trained models for our paper XPR: Cros
 
 **************************** **Updates** ****************************
 
-- 5/10 We released our [model checkpoint](./model), [evaluation code](./predict.py) and [dataset](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing).
+- 5/10 We released our [model checkpoint](https://huggingface.co/cwszz/XPR), [evaluation code](./predict.py) and [dataset](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing).
 - 4/19 We released [our paper](https://arxiv.org/abs/2204.08887). 
 - 2/26 Our paper has been accepted to **ACL2022**.
 
@@ -27,7 +27,7 @@ In the following sections, we describe how to use our XPR.
 git clone git@github.com:cwszz/XPR.git
 cd xpr
 pip install -r requirements.txt
-mkdir log
+mkdir data
 ```
 ### Dataset
 
@@ -36,6 +36,15 @@ Before using XPR, please process the dataset by following the steps below.
 - Download Our Dataset Here: [link](https://drive.google.com/file/d/1UEHqQhVj1V4mwKqs5iNdOxvRKurLUfoF/view?usp=sharing)
 
 - Unzip our dataset and move dataset into data folder. (Make sure the path in bash file is the path of dataset)
+
+### Checkpoint
+
+Before using XPR, please process the checkpoint by following the steps below.
+
+- Download Our Checkpoint Here: [link](https://huggingface.co/cwszz/XPR)
+
+- Get our checkpoint files and move the files in repo into model folder.
+
 ### Train XPR
 <!-- Download XLMR checkpoint from Huggingface page: [link](https://huggingface.co/xlm-roberta-base). -->
 

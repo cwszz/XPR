@@ -9,7 +9,7 @@ for test_lg in ${test_list[*]}; do
     --layer_id 12\
     --dataset_path ./data/ \
     --queue_length 0 \
-    --load_model_path cwszz/XPR \
+    --load_model_path ./model/pytorch_model.bin \
     --unsupervised 0 \
     > log/test-${lg}-${test_lg}-32.log 2>&1
 done

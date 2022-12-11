@@ -94,7 +94,7 @@ if __name__ == '__main__':
     # c = torch.load('./model/pytorch_model.bin')
     model = MoCo(config=config,args=args,K=queue_length,T=para_T,m=args.momentum).to(device)
     if not unsup:
-        model = torch.load('./model/xpr_model.bin')
+        model = torch.load(args.load_model_path)
         model.to(device)
         
     val_acc = test_model(model, test_loader)

@@ -58,7 +58,7 @@ bash train.sh
 
 Test our method:
 - Download the XPR checkpoint from Huggingface:
-[link](not finished)
+[link]
 - Make sure **the model path and dataset path** in test.sh are correct
 - The output log can be found in log folder 
 

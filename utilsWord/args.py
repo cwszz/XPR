@@ -168,7 +168,7 @@ def getArgs():
     parser.add_argument('--all_sentence_num', type=int, default=32)
     parser.add_argument('--dev_all_sentence_num', type=int,
                         default=32, help="only for predict")
-    parser.add_argument('--dev_sample_num', type=int, default=16)
+    parser.add_argument('--dev_sample_num', type=int, default=32)
     parser.add_argument('--cut_type', type=str, default='eos-eos')
     parser.add_argument('--wo_span_eos', type=str, default='true')
     parser.add_argument('--is_type', type=int, default=-1, help='token_type')
